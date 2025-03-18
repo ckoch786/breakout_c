@@ -35,6 +35,7 @@ float magnitude(Vector2 v)
 }
 
 
+// TODO does raylib have a built in for this?
 Vector2 normalize(Vector2 v)
 {
 	float m = magnitude(v);
@@ -45,9 +46,30 @@ Vector2 normalize(Vector2 v)
 	return (Vector2){0.0f, 0.0f};
 }
 
+Vector2 reflect(Vector2 v, Vector2 normal) 
+{
+	normal = normalize(normal);
+
+	float dotProduct = v.x * normal.x + v.y * normal.y;
+
+	// Apply the reflection formula: v - 2 * dot(v,n) * n
+	Vector2 reflection = {
+		v.x - 2.0f * dotProduct * normal.x,
+		v.y - 2.0f * dotProduct * normal.y
+	};
+
+	return reflection;
+}
+
+
 Vector2 subtract(Vector2 v1, Vector2 v2)
 {
-	return (Vector2) {v1.x - v2.x, v1.y - v1.y};
+	return (Vector2) {v1.x - v2.x, v1.y - v2.y};
+}
+
+Vector2 add(Vector2 v1, Vector2 v2)
+{
+	return (Vector2) {v1.x + v2.x, v1.y + v2.y};
 }
 
 Vector2 multiply(Vector2 v, float m)
@@ -99,7 +121,7 @@ int main (void)
 			dt = GetFrameTime();
 		}
 
-
+		Vector2 previous_ball_pos = ball_pos;
 		ball_pos.x += ball_dir.x * BALL_SPEED * dt;
 		ball_pos.y += ball_dir.y * BALL_SPEED * dt;
 
@@ -117,6 +139,45 @@ int main (void)
 		// Keep paddle in bounds of window
 		paddle_pos_x = clamp(paddle_pos_x, 0, SCREEN_SIZE - PADDLE_WIDTH);
 
+		Rectangle paddle_rect = {
+			paddle_pos_x, PADDLE_POS_Y,
+			PADDLE_WIDTH, PADDLE_HEIGHT
+		};
+
+		if (CheckCollisionCircleRec(ball_pos, BALL_RADIUS, paddle_rect)) {
+			Vector2 collision_normal;
+			// If ball hits side or top
+			if (previous_ball_pos.y < paddle_rect.y + paddle_rect.height) {
+				//collision_normal += {0, -1};
+				collision_normal = add(collision_normal, (Vector2){0, -1});
+				ball_pos.y = paddle_rect.y - BALL_RADIUS;
+			}
+
+			// If hit rect at bottom/under, not likely to occur. You lose.
+			if (previous_ball_pos.y > paddle_rect.y + paddle_rect.height) {
+				//collision_normal += {0, 1};
+				collision_normal = add(collision_normal, (Vector2){0, 1});
+				ball_pos.y = paddle_rect.y + paddle_rect.height + BALL_RADIUS;
+			}
+
+			// ___
+			if (previous_ball_pos.x < paddle_rect.x) {
+				//collision_normal += {-1, 0};
+				collision_normal = add(collision_normal, (Vector2){-1, 0});
+			}
+
+			// ___
+			if (previous_ball_pos.x > paddle_rect.x + paddle_rect.width) {
+				//collision_normal += {1, 0};
+				collision_normal = add(collision_normal, (Vector2){1, 0});
+			}
+
+			// ___
+			if (collision_normal.x != 0 && collision_normal.y != 0) {
+				ball_dir = normalize(reflect(ball_dir, normalize(collision_normal)));
+			}
+		}
+
 
 		// --------------------------------------------------------
 		// Draw
@@ -129,11 +190,6 @@ int main (void)
 		};
 
 		BeginMode2D(camera);
-
-		Rectangle paddle_rect = {
-				paddle_pos_x, PADDLE_POS_Y,
-				PADDLE_WIDTH, PADDLE_HEIGHT
-		};
 
 		DrawRectangleRec(paddle_rect, GetColor(0x32965aff));
 		DrawCircleV(ball_pos, BALL_RADIUS, GetColor(0xca5a14ff));
