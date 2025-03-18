@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <math.h>
+
 #include <raylib.h>
 
 const int SCREEN_SIZE = 320;
@@ -18,6 +20,7 @@ const int BLOCK_HEIGHT = 10;
 float paddle_pos_x;
 Vector2 ball_pos;
 Vector2 ball_dir;
+bool started;
 
 
 float clamp(float d, float min, float max)  
@@ -26,11 +29,38 @@ float clamp(float d, float min, float max)
 	return t > max ? max : t;
 }
 
+float magnitude(Vector2 v) 
+{
+	return sqrtf(v.x*v.x + v.y*v.y);
+}
+
+
+Vector2 normalize(Vector2 v)
+{
+	float m = magnitude(v);
+	if (m > 0) {
+		return (Vector2){v.x/m, v.y/m};
+	}
+
+	return (Vector2){0.0f, 0.0f};
+}
+
+Vector2 subtract(Vector2 v1, Vector2 v2)
+{
+	return (Vector2) {v1.x - v2.x, v1.y - v1.y};
+}
+
+Vector2 multiply(Vector2 v, float m)
+{
+	return (Vector2) {v.x * m, v.y * m};
+}
+
 void restart(void) 
 {
 	paddle_pos_x = SCREEN_SIZE/2 - PADDLE_WIDTH/2;
 	ball_pos.x = SCREEN_SIZE/2;
 	ball_pos.y = BALL_START_Y;
+	started = false;
 }
 
 int main (void) 
@@ -47,7 +77,30 @@ int main (void)
 		// --------------------------------------------------------
 		// Rendering
 		// --------------------------------------------------------
-		float dt = GetFrameTime();
+		float dt = 0;
+
+		if (!started) {
+			ball_pos.x = SCREEN_SIZE/2 + (float)cosf(GetTime()) * SCREEN_SIZE/2.5;
+			ball_pos.y = BALL_START_Y;
+
+			if (IsKeyPressed(KEY_SPACE)) {
+				Vector2 paddle_middle = {
+					paddle_pos_x + PADDLE_WIDTH/2,
+					PADDLE_POS_Y
+				};
+
+				// Note: Here the vector will point from the ball to the middle of the paddle
+				// If you swap these then you will get a vector from the paddle_middle to the ball position instead
+				Vector2 ball_to_paddle = subtract(paddle_middle, ball_pos);
+				ball_dir = normalize(ball_to_paddle);
+				started = true;
+			} else {
+				dt = GetFrameTime();
+			}
+		}
+
+		ball_pos.x += ball_dir.x * BALL_SPEED * dt;
+		ball_pos.y += ball_dir.y * BALL_SPEED * dt;
 
 		float paddle_move_velocity = 0;
 
