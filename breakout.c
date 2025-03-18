@@ -94,10 +94,11 @@ int main (void)
 				Vector2 ball_to_paddle = subtract(paddle_middle, ball_pos);
 				ball_dir = normalize(ball_to_paddle);
 				started = true;
-			} else {
-				dt = GetFrameTime();
-			}
+			} 
+		} else {
+			dt = GetFrameTime();
 		}
+
 
 		ball_pos.x += ball_dir.x * BALL_SPEED * dt;
 		ball_pos.y += ball_dir.y * BALL_SPEED * dt;
