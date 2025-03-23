@@ -23,6 +23,7 @@ Vector2 ball_dir;
 bool started;
 
 
+// TODO double check this, what other ways are there to handle this?
 float clamp(float d, float min, float max)  
 {
 	const float t = d < min ? min : d;
@@ -183,6 +184,7 @@ int main (void)
 		// Draw
 		// --------------------------------------------------------
 		BeginDrawing();
+		// TODO Write a function to trasform color numbers e.g.  {90, 80, 78, 255} to the format required by GetColor
 		ClearBackground(GetColor(0x96bedcff));
 
 		Camera2D camera = {
