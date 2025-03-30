@@ -9,6 +9,7 @@
 
 #include "vector.h"
 
+// TODO create break.h and try to move these constants there
 const int SCREEN_SIZE = 320;
 const int PADDLE_WIDTH = 50;
 const int PADDLE_HEIGHT = 6;
@@ -28,6 +29,35 @@ Vector2 ball_pos;
 Vector2 ball_dir;
 bool started;
 
+void printCoord(float x, float y)
+{
+	char *start_text_text = "*";
+	//char start_text_text[100];
+	//sprintf(start_text_text, "origin: %.2f,%.2f", x, y);
+	//sprintf(start_text_text, "origin: %.2f,%.2f", x, y);
+	const char *fontSize = 15;
+	float start_text_text_width = MeasureText(start_text_text, fontSize);
+	DrawText(start_text_text, x, y, fontSize, WHITE);
+}
+
+void plot()
+{
+	// top left corner
+	printCoord(0.0f,0.0f);
+	// top right corner
+	printCoord(950.0f, 0.0f);
+	// extra
+	printCoord(320.0f, 0.0f);
+	// middle top
+	printCoord(SCREEN_SIZE/2 - PADDLE_WIDTH/2, 0.0f);
+
+	// middle of screen
+	// printCoor();
+	// bottom left corner
+	//printCoord(0.0,0);
+	// bottom right corner
+	//printCoord(0,0);
+}
 
 // TODO double check this, what other ways are there to handle this?
 float clamp(float d, float min, float max)  
@@ -39,6 +69,7 @@ float clamp(float d, float min, float max)
 // TODO does raylib have a built in for this?
 Vector2 normalize(Vector2 v)
 {
+	// TODO wrap this instead? or just wrap normalize next?
 	Vector2D v2 = (Vector2D){v.x, v.y};
 	float m = cjk_magnitude(v2);
 	if (m > 0) {
@@ -111,6 +142,7 @@ int main (void)
 		// --------------------------------------------------------
 		// Rendering
 		// --------------------------------------------------------
+		plot();
 		float dt = 0;
 
 		if (!started) {
@@ -179,7 +211,12 @@ int main (void)
 		};
 
 		if (CheckCollisionCircleRec(ball_pos, BALL_RADIUS, paddle_rect)) {
-			Vector2 collision_normal;
+//			printf("A collsion occured\n");
+//			printf("\tball_radius %d\n", BALL_RADIUS);
+//			printf("\tball_pos.x %f ball_pos.y %f\n", ball_pos.x, ball_pos.y);
+//			printf("\tpaddle_rect.x %f, paddle_rect.y %f\n", paddle_rect.x, paddle_rect.y);
+//			printf("\tpaddle_rect.width %f, paddle_rect.height %f\n", paddle_rect.width, paddle_rect.height);
+			Vector2 collision_normal = (Vector2) {0,0};
 			// If ball hits side or top
 			if (previous_ball_pos.y < paddle_rect.y + paddle_rect.height) {
 				//collision_normal += {0, -1};
@@ -197,18 +234,24 @@ int main (void)
 			// The ___ side of the paddle
 			if (previous_ball_pos.x < paddle_rect.x) {
 				//collision_normal += {-1, 0};
+				puts("========= Collision with the ___ side of the paddle: ball_pos.x < paddle_rect. =========");
 				collision_normal = add(collision_normal, (Vector2){-1, 0});
 			}
 
 			// The ___ side of the paddle
 			if (previous_ball_pos.x > paddle_rect.x + paddle_rect.width) {
 				//collision_normal += {1, 0};
+				puts("========= Collision with the ___ side of the paddle: ball_pos.x > paddle_rect.x + paddle_rect.width =========");
 				collision_normal = add(collision_normal, (Vector2){1, 0});
 			}
 
 			// ___
 			if (collision_normal.x != 0 && collision_normal.y != 0) {
+				puts("========= Collision with the ___ side of the paddle: collision_normal != 0 =========");
+				printf("collition_normal.x %f collion_normal.y %f\n", collision_normal.x, collision_normal.y);
+				// TODO not sure why I did this this way?
 				ball_dir = normalize(reflect(ball_dir, normalize(collision_normal)));
+				// ball_dir = reflect(ball_dir, collision_normal);
 			}
 		}
 
