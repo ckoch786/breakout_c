@@ -154,7 +154,7 @@ int main (void)
 
 		// Handle the ball bouncing off the top of the screen
 		if (ball_pos.y - BALL_RADIUS < 0) {
-			ball_pos.x = BALL_RADIUS;
+			ball_pos.y = BALL_RADIUS;
 			ball_dir = reflect(ball_dir, (Vector2){0,1});
 		}
 		
