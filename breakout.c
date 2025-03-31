@@ -2,6 +2,7 @@
 // Which operating systems and architectures/system capabilities does this build/run on?
 // Idiosyncracies between GNU/Linux and Windows
 #include <stdio.h>
+#include <stdbool.h>
 #include <math.h>
 
 // TODO which version of this am I currently using?
@@ -17,11 +18,15 @@ const int PADDLE_SPEED = 200; // Travels 200 pixels per second
 const int BALL_SPEED = 260;
 const int BALL_RADIUS =  4;
 const int BALL_START_Y = 160;
+// TODO try using:
+// static const in
+// enum { NUM_BLOCKS_X  = 10, NUM_BLOCKS_Y = 8 };
 // 10 columns with 8 rows
-const int NUM_BLOCKS_X = 10;
-const int NUM_BLOCKS_Y = 8;
+#define NUM_BLOCKS_X 10
+#define NUM_BLOCKS_Y 8
 const int BLOCK_WIDTH = 28;
 const int BLOCK_HEIGHT = 10;
+bool blocks[NUM_BLOCKS_X][NUM_BLOCKS_Y];
 
 float paddle_pos_x;
 Vector2 ball_pos;
@@ -95,6 +100,12 @@ void restart(void)
 		.y = BALL_START_Y
 	};
 	started = false;
+
+	for (int x=0; x < NUM_BLOCKS_X; ++x) {
+		for (int y=0; y < NUM_BLOCKS_Y; ++y) {
+			blocks[x][y] = true;
+		}
+	}
 }
 
 int main (void) 
@@ -232,6 +243,24 @@ int main (void)
 
 		DrawRectangleRec(paddle_rect, GetColor(0x32965aff));
 		DrawCircleV(ball_pos, BALL_RADIUS, GetColor(0xca5a14ff));
+
+		// Do not draw blocks that the player has already hit
+		for (int x=0; x < NUM_BLOCKS_X; ++x) {
+			for (int y=0; y < NUM_BLOCKS_Y; ++y) {
+				if (blocks[x][y] == false) {
+					continue;
+				}
+				Rectangle block_rect = {
+					(float)(20 + x * BLOCK_WIDTH),
+					(float)(40 + y * BLOCK_HEIGHT),
+					BLOCK_WIDTH,
+					BLOCK_HEIGHT
+				};
+
+				DrawRectangleRec(block_rect, WHITE);
+			}
+
+		}
 
 		EndMode2D();
 		EndDrawing();
