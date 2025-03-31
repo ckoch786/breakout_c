@@ -158,6 +158,10 @@ int main (void)
 			ball_dir = reflect(ball_dir, (Vector2){0,1});
 		}
 		
+		// y + screen_size = middle of ball
+		if (ball_pos.y > SCREEN_SIZE + BALL_RADIUS * 6) {
+			restart();
+		}
 
 		float paddle_move_velocity = 0;
 
