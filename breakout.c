@@ -271,19 +271,31 @@ int main (void)
 		DrawCircleV(ball_pos, BALL_RADIUS, GetColor(0xca5a14ff));
 
 		// Do not draw blocks that the player has already hit
-		for (int x=0; x < NUM_BLOCKS_X; ++x) {
-			for (int y=0; y < NUM_BLOCKS_Y; ++y) {
-				if (blocks[x][y] == false) {
+		// 10 columns with 8 rows
+		for (int column=0; column < NUM_BLOCKS_X; ++column) {
+			for (int row=0; row < NUM_BLOCKS_Y; ++row) {
+				if (blocks[column][row] == false) {
 					continue;
 				}
 				Rectangle block_rect = {
-					(float)(20 + x * BLOCK_WIDTH),
-					(float)(40 + y * BLOCK_HEIGHT),
+					(float)(20 + column * BLOCK_WIDTH),
+					(float)(40 + row * BLOCK_HEIGHT),
 					BLOCK_WIDTH,
 					BLOCK_HEIGHT
 				};
 
-				DrawRectangleRec(block_rect, block_color_values[row_colors[y]]);
+				Vector2 top_left = { block_rect.x, block_rect.y };
+				Vector2 top_right = { block_rect.x + block_rect.width, block_rect.y };
+				Vector2 bottom_left = { block_rect.x, block_rect.y + block_rect.height };
+				Vector2 bottom_right = { block_rect.x + block_rect.width, block_rect.y + block_rect.height };
+
+				DrawRectangleRec(block_rect, block_color_values[row_colors[row]]);
+				DrawLineEx(top_left, top_right, 1, (Color){ 255, 255, 150, 100	});
+				DrawLineEx(top_left, bottom_left, 1, (Color){ 255, 255, 150, 100 });
+
+				// Looks like light is shining from the top left to give us darker colors
+				DrawLineEx(top_right, top_right, 1, (Color){ 0, 0, 50, 100 });
+				DrawLineEx(top_left, top_left, 1, (Color){ 0, 0, 50, 100 });
 			}
 		}
 
