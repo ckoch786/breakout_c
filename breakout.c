@@ -26,8 +26,33 @@ const int BALL_START_Y = 160;
 #define NUM_BLOCKS_Y 8
 const int BLOCK_WIDTH = 28;
 const int BLOCK_HEIGHT = 10;
-bool blocks[NUM_BLOCKS_X][NUM_BLOCKS_Y];
 
+typedef enum {
+	Yellow,
+	Green,
+	Orange,
+	Red
+} Block_Color;
+
+Block_Color row_colors[NUM_BLOCKS_Y] = {
+	Red,
+	Red,
+	Orange,
+	Orange,
+	Green,
+	Green,
+	Yellow,
+	Yellow
+};
+
+Color block_color_values[4] = {
+	[Yellow] = { 253, 24, 150, 255 },
+	[Green] = { 180, 245, 190, 255 },
+	[Orange] = { 170, 90, 85, 255 },
+	[Red] = { 255, 90, 85, 255 },
+};
+
+bool blocks[NUM_BLOCKS_X][NUM_BLOCKS_Y];
 float paddle_pos_x;
 Vector2 ball_pos;
 Vector2 ball_dir;
@@ -241,6 +266,7 @@ int main (void)
 
 		BeginMode2D(camera);
 
+		// TODO did I need to use GetColor hear or could I just have passed in a Color struct?
 		DrawRectangleRec(paddle_rect, GetColor(0x32965aff));
 		DrawCircleV(ball_pos, BALL_RADIUS, GetColor(0xca5a14ff));
 
@@ -257,9 +283,8 @@ int main (void)
 					BLOCK_HEIGHT
 				};
 
-				DrawRectangleRec(block_rect, WHITE);
+				DrawRectangleRec(block_rect, block_color_values[row_colors[y]]);
 			}
-
 		}
 
 		EndMode2D();
