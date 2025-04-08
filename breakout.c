@@ -70,8 +70,8 @@ Rectangle calc_block_rect(int x, int y)
 {
 	return (Rectangle) {
 		// Top-left corner position
-		.x = (float)(20 * x * BLOCK_WIDTH),
-		.y = (float)(40 * y * BLOCK_HEIGHT),
+		.x = (float)(20 + x * BLOCK_WIDTH),
+		.y = (float)(40 + y * BLOCK_HEIGHT),
 		.width = BLOCK_WIDTH,
 		.height = BLOCK_HEIGHT
 	};
