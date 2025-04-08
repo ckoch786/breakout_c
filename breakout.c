@@ -66,6 +66,17 @@ float clamp(float d, float min, float max)
 	return t > max ? max : t;
 }
 
+Rectangle calc_block_rect(int x, int y)
+{
+	return (Rectangle) {
+		// Top-left corner position
+		.x = (float)(20 + x * BLOCK_WIDTH),
+		.y = (float)(40 + y * BLOCK_HEIGHT),
+		.width = BLOCK_WIDTH,
+		.height = BLOCK_HEIGHT
+	};
+}
+
 // TODO does raylib have a built in for this?
 Vector2 normalize(Vector2 v)
 {
@@ -85,12 +96,10 @@ Vector2 reflect(Vector2 v, Vector2 normal)
 	float dotProduct = v.x * normal.x + v.y * normal.y;
 
 	// Apply the reflection formula: v - 2 * dot(v,n) * n
-	Vector2 reflection = {
+	return (Vector2) {
 		v.x - 2.0f * dotProduct * normal.x,
 		v.y - 2.0f * dotProduct * normal.y
 	};
-
-	return reflection;
 }
 
 Vector2D v2to2d(Vector2 v) 
@@ -218,6 +227,7 @@ int main (void)
 			PADDLE_WIDTH, PADDLE_HEIGHT
 		};
 
+		// Collision of ball with paddle
 		if (CheckCollisionCircleRec(ball_pos, BALL_RADIUS, paddle_rect)) {
 			Vector2 collision_normal;
 			// If ball hits side or top
@@ -234,13 +244,13 @@ int main (void)
 				ball_pos.y = paddle_rect.y + paddle_rect.height + BALL_RADIUS;
 			}
 
-			// The ___ side of the paddle
+			// The left? side of the paddle
 			if (previous_ball_pos.x < paddle_rect.x) {
 				//collision_normal += {-1, 0};
 				collision_normal = add(collision_normal, (Vector2){-1, 0});
 			}
 
-			// The ___ side of the paddle
+			// The right? side of the paddle
 			if (previous_ball_pos.x > paddle_rect.x + paddle_rect.width) {
 				//collision_normal += {1, 0};
 				collision_normal = add(collision_normal, (Vector2){1, 0});
@@ -251,7 +261,6 @@ int main (void)
 				ball_dir = normalize(reflect(ball_dir, normalize(collision_normal)));
 			}
 		}
-
 
 		// --------------------------------------------------------
 		// Draw
@@ -272,24 +281,21 @@ int main (void)
 
 		// Do not draw blocks that the player has already hit
 		// 10 columns with 8 rows
-		for (int column=0; column < NUM_BLOCKS_X; ++column) {
-			for (int row=0; row < NUM_BLOCKS_Y; ++row) {
-				if (blocks[column][row] == false) {
+		for (int x=0; x < NUM_BLOCKS_X; ++x) {
+			for (int y=0; y < NUM_BLOCKS_Y; ++y) {
+				if (blocks[x][y] == false) {
 					continue;
 				}
-				Rectangle block_rect = {
-					(float)(20 + column * BLOCK_WIDTH),
-					(float)(40 + row * BLOCK_HEIGHT),
-					BLOCK_WIDTH,
-					BLOCK_HEIGHT
-				};
+
+				Rectangle block_rect = calc_block_rect(x, y);
 
 				Vector2 top_left = { block_rect.x, block_rect.y };
 				Vector2 top_right = { block_rect.x + block_rect.width, block_rect.y };
 				Vector2 bottom_left = { block_rect.x, block_rect.y + block_rect.height };
-				Vector2 bottom_right = { block_rect.x + block_rect.width, block_rect.y + block_rect.height };
+				// TODO unused
+				// Vector2 bottom_right = { block_rect.x + block_rect.width, block_rect.y + block_rect.height };
 
-				DrawRectangleRec(block_rect, block_color_values[row_colors[row]]);
+				DrawRectangleRec(block_rect, block_color_values[row_colors[y]]);
 				DrawLineEx(top_left, top_right, 1, (Color){ 255, 255, 150, 100	});
 				DrawLineEx(top_left, bottom_left, 1, (Color){ 255, 255, 150, 100 });
 
