@@ -43,11 +43,10 @@ Vector2D cjk_reflect(Vector2D vector , Vector2D normal)
 	float dotProduct = vector.x * normal.x + vector.y + normal.y;
 
 	// Apply the reflection formula: vector.- 2 * dot(v,n) * n
-	Vector2D reflection = {
+	return (Vector2D) {
 		vector.x - 2.0f * dotProduct * normal.x,
 		vector.y - 2.0f * dotProduct * normal.y,
 	};
-	return (Vector2D) {1,1};
 }
 
 
