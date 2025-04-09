@@ -52,11 +52,19 @@ Color block_color_values[4] = {
 	[Red] = { 255, 90, 85, 255 },
 };
 
+const int block_color_score[4] = {
+	[Yellow] = 2,
+	[Green] = 4,
+	[Orange] = 6,
+	[Red] = 8
+};
+
 bool blocks[NUM_BLOCKS_X][NUM_BLOCKS_Y];
-float paddle_pos_x;
-Vector2 ball_pos;
+float paddle_pos_x = 0.0f;
+Vector2 ball_pos; // TODO initialize these to the rl ZeroVector2
 Vector2 ball_dir;
-bool started;
+bool started = false;
+int score = 0;
 
 
 // TODO double check this, what other ways are there to handle this?
@@ -138,6 +146,7 @@ void restart(void)
 		.y = BALL_START_Y
 	};
 	started = false;
+	score = 0;
 
 	for (int x=0; x < NUM_BLOCKS_X; ++x) {
 		for (int y=0; y < NUM_BLOCKS_Y; ++y) {
@@ -266,12 +275,11 @@ int main (void)
 			}
 		}
 
-block_x_loop:
 		//printf("FROM THE TOP!!!!!!!!!!!!!!!!!!!!!!!!!");
 		bool found_block = false;
 
 		// Handle collision of ball with blocks
-		for (int x = 0; x < NUM_BLOCKS_X; ++x) {
+block_x_loop:	for (int x = 0; x < NUM_BLOCKS_X; ++x) {
 			for (int y = 0; y < NUM_BLOCKS_Y; ++y) {
 				// TODO does this just prevent registering the collision for a block that a has already been it? Is it still
 				// on the screen just no longer visible?
@@ -317,13 +325,17 @@ block_x_loop:
 					if (blocks[x][y]) {
 						// Destroy the block
 						blocks[x][y] = false;
+						Block_Color row_color = row_colors[y]; 
+						score += block_color_score[row_color];
 						found_block = true;
+						// TODO does this work the same way as the Odin break to label?
 						goto block_x_loop;
 					}
 				}
 
 			}
 //			if (found_block) {
+//				found_block = false;
 //				break;
 //			}
 		}
@@ -371,6 +383,13 @@ block_x_loop:
 				DrawLineEx(top_left, top_left, 1, (Color){ 0, 0, 50, 100 });
 			}
 		}
+
+		// TODO this is stored on the stack correct?  Why would you use malloc etc instead and freeing it later?  Does that 
+		// not put it on the heap instead?  What does that really mean?  It what ways are the stack and the heap different?
+		char score_text[50];
+		sprintf(score_text, "%d", score);
+		// 10 px
+		DrawText(score_text, 5, 5, 10, WHITE);
 
 		EndMode2D();
 		EndDrawing();
