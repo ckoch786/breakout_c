@@ -78,6 +78,10 @@ Rectangle calc_block_rect(int x, int y)
 }
 
 // TODO does raylib have a built in for this?
+// TODO yes, it appear that it does it is in raymath.h everything is the same but the normalize function seems off.
+// TODO phase out the custom vector stuff but move it into a separate repo for colletions for learning purposes and 
+// for the possiblity of using it for my own engine development down the road if for instance I choose to isolate libraries
+// so that I can pull out parts/modify them to work the way I would like them to.
 Vector2 normalize(Vector2 v)
 {
 	Vector2D v2 = (Vector2D){v.x, v.y};
@@ -262,6 +266,69 @@ int main (void)
 			}
 		}
 
+block_x_loop:
+		//printf("FROM THE TOP!!!!!!!!!!!!!!!!!!!!!!!!!");
+		bool found_block = false;
+
+		// Handle collision of ball with blocks
+		for (int x = 0; x < NUM_BLOCKS_X; ++x) {
+			for (int y = 0; y < NUM_BLOCKS_Y; ++y) {
+				// TODO does this just prevent registering the collision for a block that a has already been it? Is it still
+				// on the screen just no longer visible?
+				if (blocks[x][y] == false) {
+					// printf("blocks[%d][%d] is %d\n", x, y, blocks[x][y]);
+					continue;
+				}
+
+				Rectangle block_rect = calc_block_rect(x ,y);
+
+				// TODO Here we are using the previous frames ball position? Around 1:08:00 Balls and blocks collision
+				if (CheckCollisionCircleRec(ball_pos, BALL_RADIUS, block_rect)) {
+					Vector2 collision_normal = (Vector2){0,0};
+
+					// ball hit from top
+					if (previous_ball_pos.y < block_rect.y) {
+						puts("ball hit from top");
+						collision_normal = add(collision_normal, (Vector2) {0, -1});
+					}
+
+					// ball hit from bottom
+					if (previous_ball_pos.y > block_rect.y + block_rect.height) {
+						puts("ball hit from bottom");
+						collision_normal = add(collision_normal, (Vector2) {0, 1});
+					}
+
+					// on left side
+					if (previous_ball_pos.x < block_rect.x) {
+						puts("ball hit from left side");
+						collision_normal = add(collision_normal, (Vector2) {-1, 0});
+					}
+
+					// on right side
+					if (previous_ball_pos.x > block_rect.x + block_rect.width) {
+						puts("ball hit from right side");
+						collision_normal = add(collision_normal, (Vector2) {1, 0});
+					}
+
+					// Reflecting the ball off the block
+					if (collision_normal.x != 0 && collision_normal.y != 0) {
+						ball_dir = reflect(ball_dir, collision_normal);
+					}
+					if (blocks[x][y]) {
+						// Destroy the block
+						blocks[x][y] = false;
+						found_block = true;
+						goto block_x_loop;
+					}
+				}
+
+			}
+//			if (found_block) {
+//				break;
+//			}
+		}
+
+
 		// --------------------------------------------------------
 		// Draw
 		// --------------------------------------------------------
@@ -288,7 +355,7 @@ int main (void)
 				}
 
 				Rectangle block_rect = calc_block_rect(x, y);
-
+				
 				Vector2 top_left = { block_rect.x, block_rect.y };
 				Vector2 top_right = { block_rect.x + block_rect.width, block_rect.y };
 				Vector2 bottom_left = { block_rect.x, block_rect.y + block_rect.height };
