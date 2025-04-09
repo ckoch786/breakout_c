@@ -64,6 +64,7 @@ float paddle_pos_x = 0.0f;
 Vector2 ball_pos; // TODO initialize these to the rl ZeroVector2
 Vector2 ball_dir;
 bool started = false;
+bool game_over = false;
 int score = 0;
 
 
@@ -145,7 +146,9 @@ void restart(void)
 		.x = SCREEN_SIZE/2,
 		.y = BALL_START_Y
 	};
+	// TODO is the latest versions of C used in embedded development?  What version of C is the majority of embedded C in?
 	started = false;
+	game_over = false;
 	score = 0;
 
 	for (int x=0; x < NUM_BLOCKS_X; ++x) {
@@ -189,6 +192,10 @@ int main (void)
 				ball_dir = normalize((Vector2){ball_to_paddle.x, ball_to_paddle.y});
 				started = true;
 			} 
+		} else if (game_over){
+			if (IsKeyPressed(KEY_SPACE)) {
+				restart();
+			}
 		} else {
 			dt = GetFrameTime();
 		}
@@ -217,8 +224,8 @@ int main (void)
 		}
 		
 		// y + screen_size = middle of ball
-		if (ball_pos.y > SCREEN_SIZE + BALL_RADIUS * 6) {
-			restart();
+		if (!game_over && ball_pos.y > SCREEN_SIZE + BALL_RADIUS * 6) {
+			game_over = true;
 		}
 
 		float paddle_move_velocity = 0;
@@ -386,10 +393,29 @@ block_x_loop:	for (int x = 0; x < NUM_BLOCKS_X; ++x) {
 
 		// TODO this is stored on the stack correct?  Why would you use malloc etc instead and freeing it later?  Does that 
 		// not put it on the heap instead?  What does that really mean?  It what ways are the stack and the heap different?
+		// TODO does this take up 50 bytes?
 		char score_text[50];
 		sprintf(score_text, "%d", score);
 		// 10 px
+		// TODO will this overflow?
 		DrawText(score_text, 5, 5, 10, WHITE);
+
+		if (!started) {
+			const char *start_text = "Start: SPACE";
+			const int font_size = 15;
+			const int start_text_width = MeasureText(start_text, font_size);
+			DrawText(start_text, SCREEN_SIZE/2 - start_text_width/2, BALL_START_Y-30, 15, WHITE);
+		}
+
+		if (game_over) {
+			// TODO does this take up 100 bytes?
+			const char game_over_text[100];
+			sprintf(game_over_text, "Score: %d. Reset: SPACE", score);
+			const int font_size = 15;
+			const int game_over_text_width = MeasureText(game_over_text, font_size);
+			DrawText(game_over_text, SCREEN_SIZE/2 - game_over_text_width/2, BALL_START_Y-30, 15, WHITE);
+
+		}
 
 		EndMode2D();
 		EndDrawing();
