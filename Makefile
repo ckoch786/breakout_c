@@ -2,6 +2,12 @@ CC = gcc
 CFLAGS = -Wall -Wextra
 LIBS = -lraylib -lm # math.h
 BUILD=build
+ASSETS_DIR = assets
+BUILD_ASSETS_DIR = $(BUILD)/assets
+
+# Find all assets
+ASSETS = $(wildcard $(ASSETS_DIR)/*);
+BUILD_ASSETS = $(ASSETS:$(ASSETS_DIR)%=$(BUILD_ASSETS_DIR)/%)
 
 all: breakout
 
@@ -14,6 +20,14 @@ breakout.o: breakout.c
 $(BUILD)/vector.o: vector.c vector.h build
 	$(CC) $(CFLAGS) -c vector.c -o $(BUILD)/vector.o $(LIBS) 
 
+assets: build_assets $(BUILD_ASSETS)
+
+build_assets:
+	mkdir -p $(BUILD_ASSETS_DIR)
+
+$(BUILD_ASSETS_DIR)/%: $(ASSETS_DIR)/%
+	cp $< $@
+
 build:
 	mkdir -p $(BUILD)
 
@@ -24,5 +38,5 @@ run: breakout
 	./breakout
 
 
-.PHONY: clean build all run
+.PHONY: clean build build_assets assets all run
 

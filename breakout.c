@@ -165,6 +165,9 @@ int main (void)
 	InitWindow(960, 960, "Breakout");
 	SetTargetFPS(500);
 
+	Texture2D ball_texture = LoadTexture("assets/ball.png");
+	Texture2D paddle_texture = LoadTexture("assets/paddle.png");
+
 	restart();
 
 	while (!WindowShouldClose()) {
@@ -362,8 +365,11 @@ block_x_loop:	for (int x = 0; x < NUM_BLOCKS_X; ++x) {
 		BeginMode2D(camera);
 
 		// TODO did I need to use GetColor hear or could I just have passed in a Color struct?
-		DrawRectangleRec(paddle_rect, GetColor(0x32965aff));
-		DrawCircleV(ball_pos, BALL_RADIUS, GetColor(0xca5a14ff));
+		// DrawRectangleRec(paddle_rect, GetColor(0x32965aff));
+		// DrawCircleV(ball_pos, BALL_RADIUS, GetColor(0xca5a14ff));
+		//
+		DrawTextureV(paddle_texture, (Vector2){ paddle_pos_x, PADDLE_POS_Y }, WHITE);
+		DrawTextureV(ball_texture, subtract(ball_pos, (Vector2){ BALL_RADIUS, BALL_RADIUS }), WHITE);
 
 		// Do not draw blocks that the player has already hit
 		// 10 columns with 8 rows
