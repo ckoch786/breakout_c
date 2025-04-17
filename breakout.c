@@ -67,7 +67,6 @@ bool started = false;
 bool game_over = false;
 int score = 0;
 
-
 // TODO double check this, what other ways are there to handle this?
 float clamp(float d, float min, float max)  
 {
@@ -146,6 +145,7 @@ void restart(void)
 		.x = SCREEN_SIZE/2,
 		.y = BALL_START_Y
 	};
+
 	// TODO is the latest versions of C used in embedded development?  What version of C is the majority of embedded C in?
 	started = false;
 	game_over = false;
@@ -163,10 +163,15 @@ int main (void)
 	// Sync with monitor refresh rate
 	SetConfigFlags(FLAG_VSYNC_HINT);
 	InitWindow(960, 960, "Breakout");
+	InitAudioDevice();
 	SetTargetFPS(500);
 
 	Texture2D ball_texture = LoadTexture("assets/ball.png");
 	Texture2D paddle_texture = LoadTexture("assets/paddle.png");
+
+	Sound hit_block_sound = LoadSound("assets/hit_block.wav");
+	Sound hit_paddle_sound = LoadSound("assets/hit_paddle.wav");
+	Sound game_over_sound = LoadSound("assets/game_over.wav");
 
 	restart();
 
@@ -175,7 +180,7 @@ int main (void)
 		// --------------------------------------------------------
 		// Rendering
 		// --------------------------------------------------------
-		float dt = 0;
+		float dt = 0.0f;
 
 		if (!started) {
 			ball_pos = (Vector2) {
@@ -229,6 +234,7 @@ int main (void)
 		// y + screen_size = middle of ball
 		if (!game_over && ball_pos.y > SCREEN_SIZE + BALL_RADIUS * 6) {
 			game_over = true;
+			PlaySound(game_over_sound);
 		}
 
 		float paddle_move_velocity = 0;
@@ -283,6 +289,8 @@ int main (void)
 			if (collision_normal.x != 0 && collision_normal.y != 0) {
 				ball_dir = normalize(reflect(ball_dir, normalize(collision_normal)));
 			}
+
+			PlaySound(hit_paddle_sound);
 		}
 
 		//printf("FROM THE TOP!!!!!!!!!!!!!!!!!!!!!!!!!");
@@ -337,6 +345,8 @@ block_x_loop:	for (int x = 0; x < NUM_BLOCKS_X; ++x) {
 						blocks[x][y] = false;
 						Block_Color row_color = row_colors[y]; 
 						score += block_color_score[row_color];
+						//SetSoundPitch(hit_block_sound, rand.float32_range(0.8, 1.2));
+						PlaySound(hit_block_sound);
 						found_block = true;
 						// TODO does this work the same way as the Odin break to label?
 						goto block_x_loop;
