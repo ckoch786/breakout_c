@@ -63,9 +63,12 @@ bool blocks[NUM_BLOCKS_X][NUM_BLOCKS_Y];
 float paddle_pos_x = 0.0f;
 Vector2 ball_pos; // TODO initialize these to the rl ZeroVector2
 Vector2 ball_dir;
-bool started = false;
-bool game_over = false;
+bool started = false;bool game_over = false;
 int score = 0;
+float accumulated_time = 0.0f;
+Vector2 previous_ball_pos;
+float previous_paddle_pos_x = 0.0f;
+
 
 // TODO double check this, what other ways are there to handle this?
 float clamp(float d, float min, float max)  
@@ -73,6 +76,15 @@ float clamp(float d, float min, float max)
 	const float t = d < min ? min : d;
 	return t > max ? max : t;
 }
+
+// TODO make this and refactor code below to use it
+// I am thinking about using a union of structs to make this
+// "generic" if that is the word to use for this. 
+// lerp :: proc "contextless" (a, b: $T, t: $E) -> (x: $T) {}
+//Vector2 lerp(Vector2 a, float b, float t)
+//{
+//
+//}
 
 Rectangle calc_block_rect(int x, int y)
 {
@@ -141,11 +153,12 @@ Vector2 multiply(Vector2 v, float m)
 void restart(void) 
 {
 	paddle_pos_x = SCREEN_SIZE/2 - PADDLE_WIDTH/2;
+	previous_paddle_pos_x = paddle_pos_x;
 	ball_pos = (Vector2) { 
 		.x = SCREEN_SIZE/2,
 		.y = BALL_START_Y
 	};
-
+	previous_ball_pos = ball_pos;
 	// TODO is the latest versions of C used in embedded development?  What version of C is the majority of embedded C in?
 	started = false;
 	game_over = false;
@@ -180,13 +193,15 @@ int main (void)
 		// --------------------------------------------------------
 		// Rendering
 		// --------------------------------------------------------
-		float dt = 0.0f;
+		float dt = 1.0f/60.0f; // 16ms, 0.16s
 
 		if (!started) {
 			ball_pos = (Vector2) {
 				.x = SCREEN_SIZE/2 + (float)cosf(GetTime()) * SCREEN_SIZE/2.5,
 				.y = BALL_START_Y
 			};
+
+			previous_ball_pos = ball_pos;
 
 			if (IsKeyPressed(KEY_SPACE)) {
 				Vector2 paddle_middle = {
@@ -205,160 +220,202 @@ int main (void)
 				restart();
 			}
 		} else {
-			dt = GetFrameTime();
+			accumulated_time += GetFrameTime();
 		}
 
-		Vector2 previous_ball_pos = ball_pos;
-		ball_pos.x += ball_dir.x * BALL_SPEED * dt;
-		ball_pos.y += ball_dir.y * BALL_SPEED * dt;
+//		Vector2 previous_ball_pos = ball_pos;
+//		ball_pos.x += ball_dir.x * BALL_SPEED * dt;
+//		ball_pos.y += ball_dir.y * BALL_SPEED * dt;
 
-		// Handle the ball bouncing off the right side of the screen
-		if (ball_pos.x + BALL_RADIUS > SCREEN_SIZE) {
-			ball_pos.x = SCREEN_SIZE - BALL_RADIUS;
-			ball_dir = reflect(ball_dir, (Vector2){-1,0});
-		}
+		// accumulated_time = 0.031 s
+		// accumulated_time = 0.015 s - this is almost a whole frame of time
+		while (accumulated_time >= dt) {
 
-		// Handle the ball bouncing of the left side of the screen
-		if (ball_pos.x - BALL_RADIUS < 0) {
-			// 0 +
-			ball_pos.x = BALL_RADIUS;
-			ball_dir = reflect(ball_dir, (Vector2){1, 0});
-		}
+			printf("accumulated_time >= dt => %f >= %f\n", accumulated_time, dt);
+			previous_ball_pos = ball_pos;
+			previous_paddle_pos_x = paddle_pos_x;
+			// ball_pos += ball_dir * BALL_SPEED * dt;
+			ball_pos.x += ball_dir.x * BALL_SPEED * dt;
+			ball_pos.y += ball_dir.y * BALL_SPEED * dt;
 
-		// Handle the ball bouncing off the top of the screen
-		if (ball_pos.y - BALL_RADIUS < 0) {
-			ball_pos.y = BALL_RADIUS;
-			ball_dir = reflect(ball_dir, (Vector2){0,1});
-		}
-		
-		// y + screen_size = middle of ball
-		if (!game_over && ball_pos.y > SCREEN_SIZE + BALL_RADIUS * 6) {
-			game_over = true;
-			PlaySound(game_over_sound);
-		}
-
-		float paddle_move_velocity = 0;
-
-		if (IsKeyDown(KEY_LEFT)) {
-			paddle_move_velocity -= PADDLE_SPEED;
-		}
-
-		if (IsKeyDown(KEY_RIGHT)) {
-			paddle_move_velocity += PADDLE_SPEED;
-		}
-
-		paddle_pos_x += paddle_move_velocity * dt;
-		// Keep paddle in bounds of window
-		paddle_pos_x = clamp(paddle_pos_x, 0, SCREEN_SIZE - PADDLE_WIDTH);
-
-		Rectangle paddle_rect = {
-			paddle_pos_x, PADDLE_POS_Y,
-			PADDLE_WIDTH, PADDLE_HEIGHT
-		};
-
-		// Collision of ball with paddle
-		if (CheckCollisionCircleRec(ball_pos, BALL_RADIUS, paddle_rect)) {
-			Vector2 collision_normal;
-			// If ball hits side or top
-			if (previous_ball_pos.y < paddle_rect.y + paddle_rect.height) {
-				//collision_normal += {0, -1};
-				collision_normal = add(collision_normal, (Vector2){0, -1});
-				ball_pos.y = paddle_rect.y - BALL_RADIUS;
+			// Handle the ball bouncing off the right side of the screen
+			if (ball_pos.x + BALL_RADIUS > SCREEN_SIZE) {
+				ball_pos.x = SCREEN_SIZE - BALL_RADIUS;
+				ball_dir = reflect(ball_dir, (Vector2){-1,0});
 			}
 
-			// If hit rect at bottom/under, not likely to occur. You lose.
-			if (previous_ball_pos.y > paddle_rect.y + paddle_rect.height) {
-				//collision_normal += {0, 1};
-				collision_normal = add(collision_normal, (Vector2){0, 1});
-				ball_pos.y = paddle_rect.y + paddle_rect.height + BALL_RADIUS;
+			// Handle the ball bouncing of the left side of the screen
+			if (ball_pos.x - BALL_RADIUS < 0) {
+				// 0 +
+				ball_pos.x = BALL_RADIUS;
+				ball_dir = reflect(ball_dir, (Vector2){1, 0});
 			}
 
-			// The left? side of the paddle
-			if (previous_ball_pos.x < paddle_rect.x) {
-				//collision_normal += {-1, 0};
-				collision_normal = add(collision_normal, (Vector2){-1, 0});
+			// Handle the ball bouncing off the top of the screen
+			if (ball_pos.y - BALL_RADIUS < 0) {
+				ball_pos.y = BALL_RADIUS;
+				ball_dir = reflect(ball_dir, (Vector2){0,1});
 			}
 
-			// The right? side of the paddle
-			if (previous_ball_pos.x > paddle_rect.x + paddle_rect.width) {
-				//collision_normal += {1, 0};
-				collision_normal = add(collision_normal, (Vector2){1, 0});
+			// y + screen_size = middle of ball
+			if (!game_over && ball_pos.y > SCREEN_SIZE + BALL_RADIUS * 6) {
+				game_over = true;
+				PlaySound(game_over_sound);
 			}
 
-			// ___
-			if (collision_normal.x != 0 && collision_normal.y != 0) {
-				ball_dir = normalize(reflect(ball_dir, normalize(collision_normal)));
+			float paddle_move_velocity = 0;
+
+			if (IsKeyDown(KEY_LEFT)) {
+				paddle_move_velocity -= PADDLE_SPEED;
 			}
 
-			PlaySound(hit_paddle_sound);
-		}
+			if (IsKeyDown(KEY_RIGHT)) {
+				paddle_move_velocity += PADDLE_SPEED;
+			}
 
-		//printf("FROM THE TOP!!!!!!!!!!!!!!!!!!!!!!!!!");
-		bool found_block = false;
+			paddle_pos_x += paddle_move_velocity * dt;
+			// Keep paddle in bounds of window
+			paddle_pos_x = clamp(paddle_pos_x, 0, SCREEN_SIZE - PADDLE_WIDTH);
 
-		// Handle collision of ball with blocks
-block_x_loop:	for (int x = 0; x < NUM_BLOCKS_X; ++x) {
-			for (int y = 0; y < NUM_BLOCKS_Y; ++y) {
-				// TODO does this just prevent registering the collision for a block that a has already been it? Is it still
-				// on the screen just no longer visible?
-				if (blocks[x][y] == false) {
-					// printf("blocks[%d][%d] is %d\n", x, y, blocks[x][y]);
-					continue;
+			Rectangle paddle_rect = {
+				paddle_pos_x, PADDLE_POS_Y,
+				PADDLE_WIDTH, PADDLE_HEIGHT
+			};
+
+			// Collision of ball with paddle
+			if (CheckCollisionCircleRec(ball_pos, BALL_RADIUS, paddle_rect)) {
+				Vector2 collision_normal;
+				// If ball hits side or top
+				if (previous_ball_pos.y < paddle_rect.y + paddle_rect.height) {
+					//collision_normal += {0, -1};
+					collision_normal = add(collision_normal, (Vector2){0, -1});
+					ball_pos.y = paddle_rect.y - BALL_RADIUS;
 				}
 
-				Rectangle block_rect = calc_block_rect(x ,y);
-
-				// TODO Here we are using the previous frames ball position? Around 1:08:00 Balls and blocks collision
-				if (CheckCollisionCircleRec(ball_pos, BALL_RADIUS, block_rect)) {
-					Vector2 collision_normal = (Vector2){0,0};
-
-					// ball hit from top
-					if (previous_ball_pos.y < block_rect.y) {
-						puts("ball hit from top");
-						collision_normal = add(collision_normal, (Vector2) {0, -1});
-					}
-
-					// ball hit from bottom
-					if (previous_ball_pos.y > block_rect.y + block_rect.height) {
-						puts("ball hit from bottom");
-						collision_normal = add(collision_normal, (Vector2) {0, 1});
-					}
-
-					// on left side
-					if (previous_ball_pos.x < block_rect.x) {
-						puts("ball hit from left side");
-						collision_normal = add(collision_normal, (Vector2) {-1, 0});
-					}
-
-					// on right side
-					if (previous_ball_pos.x > block_rect.x + block_rect.width) {
-						puts("ball hit from right side");
-						collision_normal = add(collision_normal, (Vector2) {1, 0});
-					}
-
-					// Reflecting the ball off the block
-					if (collision_normal.x != 0 && collision_normal.y != 0) {
-						ball_dir = reflect(ball_dir, collision_normal);
-					}
-					if (blocks[x][y]) {
-						// Destroy the block
-						blocks[x][y] = false;
-						Block_Color row_color = row_colors[y]; 
-						score += block_color_score[row_color];
-						//SetSoundPitch(hit_block_sound, rand.float32_range(0.8, 1.2));
-						PlaySound(hit_block_sound);
-						found_block = true;
-						// TODO does this work the same way as the Odin break to label?
-						goto block_x_loop;
-					}
+				// If hit rect at bottom/under, not likely to occur. You lose.
+				if (previous_ball_pos.y > paddle_rect.y + paddle_rect.height) {
+					//collision_normal += {0, 1};
+					collision_normal = add(collision_normal, (Vector2){0, 1});
+					ball_pos.y = paddle_rect.y + paddle_rect.height + BALL_RADIUS;
 				}
 
+				// The left? side of the paddle
+				if (previous_ball_pos.x < paddle_rect.x) {
+					//collision_normal += {-1, 0};
+					collision_normal = add(collision_normal, (Vector2){-1, 0});
+				}
+
+				// The right? side of the paddle
+				if (previous_ball_pos.x > paddle_rect.x + paddle_rect.width) {
+					//collision_normal += {1, 0};
+					collision_normal = add(collision_normal, (Vector2){1, 0});
+				}
+
+				// ___
+				if (collision_normal.x != 0 && collision_normal.y != 0) {
+					ball_dir = normalize(reflect(ball_dir, normalize(collision_normal)));
+				}
+
+				PlaySound(hit_paddle_sound);
 			}
-//			if (found_block) {
-//				found_block = false;
-//				break;
-//			}
+
+			//printf("FROM THE TOP!!!!!!!!!!!!!!!!!!!!!!!!!");
+			bool found_block = false;
+
+			// Handle collision of ball with blocks
+block_x_loop:		for (int x = 0; x < NUM_BLOCKS_X; ++x) {
+				for (int y = 0; y < NUM_BLOCKS_Y; ++y) {
+					// TODO does this just prevent registering the collision for a block that a has already been it? Is it still
+					// on the screen just no longer visible?
+					if (blocks[x][y] == false) {
+						// printf("blocks[%d][%d] is %d\n", x, y, blocks[x][y]);
+						continue;
+					}
+
+					Rectangle block_rect = calc_block_rect(x ,y);
+
+					// TODO Here we are using the previous frames ball position? Around 1:08:00 Balls and blocks collision
+					if (CheckCollisionCircleRec(ball_pos, BALL_RADIUS, block_rect)) {
+						Vector2 collision_normal = (Vector2){0,0};
+
+						// ball hit from top
+						if (previous_ball_pos.y < block_rect.y) {
+							puts("ball hit from top");
+							collision_normal = add(collision_normal, (Vector2) {0, -1});
+						}
+
+						// ball hit from bottom
+						if (previous_ball_pos.y > block_rect.y + block_rect.height) {
+							puts("ball hit from bottom");
+							collision_normal = add(collision_normal, (Vector2) {0, 1});
+						}
+
+						// on left side
+						if (previous_ball_pos.x < block_rect.x) {
+							puts("ball hit from left side");
+							collision_normal = add(collision_normal, (Vector2) {-1, 0});
+						}
+
+						// on right side
+						if (previous_ball_pos.x > block_rect.x + block_rect.width) {
+							puts("ball hit from right side");
+							collision_normal = add(collision_normal, (Vector2) {1, 0});
+						}
+
+						// Reflecting the ball off the block
+						if (collision_normal.x != 0 && collision_normal.y != 0) {
+							ball_dir = reflect(ball_dir, collision_normal);
+						}
+						if (blocks[x][y]) {
+							// Destroy the block
+							blocks[x][y] = false;
+							Block_Color row_color = row_colors[y]; 
+							score += block_color_score[row_color];
+							//SetSoundPitch(hit_block_sound, rand.float32_range(0.8, 1.2));
+							PlaySound(hit_block_sound);
+							found_block = true;
+							// TODO does this work the same way as the Odin break to label?
+							goto block_x_loop;
+						}
+					}
+
+				}
+				//			if (found_block) {
+				//				found_block = false;
+				//				break;
+				//			}
+			}
+
+			accumulated_time -= dt;
 		}
+
+		// always a value between zero and one
+		float blend = accumulated_time / dt;
+		// when blend is zero will pick pevious_ball_pos when one will pick ball_pos
+		//ball_render_pos = lerp(previous_ball_pos, ball_pos, blend);
+		// Linear interpolation (lerp) => 
+		//        x*(1-s) + y*s => 
+		//        	x + s*(y-x)
+		//        	
+		// x = previous_ball_pos
+		// y = ball_pos
+		// s = blend
+		Vector2 ball_render_pos;
+		ball_render_pos.x = previous_ball_pos.x + blend*(ball_pos.x - previous_ball_pos.x);
+		ball_render_pos.y = previous_ball_pos.y + blend*(ball_pos.y - previous_ball_pos.y);
+		//paddle_render_pos_x = lerp(previous_paddle_pos_x, paddle_pos_x, blend);
+		// Linear interpolation (lerp) => 
+		//        x*(1-s) + y*s => 
+		//        	x + s*(y-x)
+		//        	
+		// x = previous_paddle_pos_x
+		// y = paddle_pos_x
+		// s = blend
+		float paddle_render_pos_x = 0.0f;
+		// TODO what is this doing????? why does this build and run?
+		//paddle_render_pos_x = previous_paddle_pos_x + blend*(paddle_pos_x, previous_paddle_pos_x);
+		paddle_render_pos_x = previous_paddle_pos_x + blend*(paddle_pos_x - previous_paddle_pos_x);
+
 
 
 		// --------------------------------------------------------
@@ -378,8 +435,8 @@ block_x_loop:	for (int x = 0; x < NUM_BLOCKS_X; ++x) {
 		// DrawRectangleRec(paddle_rect, GetColor(0x32965aff));
 		// DrawCircleV(ball_pos, BALL_RADIUS, GetColor(0xca5a14ff));
 		//
-		DrawTextureV(paddle_texture, (Vector2){ paddle_pos_x, PADDLE_POS_Y }, WHITE);
-		DrawTextureV(ball_texture, subtract(ball_pos, (Vector2){ BALL_RADIUS, BALL_RADIUS }), WHITE);
+		DrawTextureV(paddle_texture, (Vector2){ paddle_render_pos_x, PADDLE_POS_Y }, WHITE);
+		DrawTextureV(ball_texture, subtract(ball_render_pos, (Vector2){ BALL_RADIUS, BALL_RADIUS }), WHITE);
 
 		// Do not draw blocks that the player has already hit
 		// 10 columns with 8 rows
